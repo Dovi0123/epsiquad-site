@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://shop.epsiquad.ru/sitemap.xml
+
+# Запрещаем индексацию админ-панели
+Disallow: /admin/
+Disallow: /api/
+
+# Разрешаем индексацию основных страниц
+Allow: /pricing
+Allow: /setup
+Allow: /contact 
