@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, ChangeEvent, FormEvent } from 'react';
+import { useState, useEffect, ChangeEvent, FormEvent, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 const TABS = [
@@ -48,7 +48,7 @@ type ProfileForm = {
   confirmPassword: string;
 };
 
-export default function AccountPage() {
+function AccountPage() {
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [form, setForm] = useState<LoginForm>({ email: '', password: '', name: '' });
   const [user, setUser] = useState<User | null>(null);
@@ -590,5 +590,13 @@ export default function AccountPage() {
         </form>
       </div>
     </main>
+  );
+}
+
+export default function AccountPageWrapper() {
+  return (
+    <Suspense fallback={<div>Загрузка...</div>}>
+      <AccountPage />
+    </Suspense>
   );
 }
