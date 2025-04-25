@@ -16,7 +16,7 @@ interface Window {
         item_name: string;
         price: number;
       }>;
-      [key: string]: unknown;
+      [key: string]: any;
     }
   ) => void;
 } 

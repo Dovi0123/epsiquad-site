@@ -6,7 +6,7 @@ import { getDb } from '@/lib/db';
 const LAVA_SECRET_KEY = 'YOUR_SECRET_KEY'; // Замените на ваш секретный ключ
 
 // Генерация подписи для запросов к Lava API
-function generateSignature(data: Record<string, unknown>, secretKey: string): string {
+function generateSignature(data: Record<string, any>, secretKey: string): string {
   // Сортируем ключи
   const keys = Object.keys(data).sort();
   

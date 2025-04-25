@@ -47,7 +47,7 @@ export default function Checkout() {
 
   // Инициализируем форму с правильными типами
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
-    // @ts-expect-error - игнорируем ошибку типизации для yupResolver, поскольку версии типов могут не совпадать
+    // @ts-ignore - игнорируем ошибку типизации для yupResolver, поскольку версии типов могут не совпадать
     resolver: yupResolver(schema),
     defaultValues: {
       email: '',
@@ -225,7 +225,6 @@ export default function Checkout() {
           {/* Форма оплаты - показываем, только если корзина не пуста */}
           {cartItems.length > 0 && (
             <>
-              {/* @ts-expect-error - Несоответствие типов между FormData из useForm и handleSubmit */}
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">

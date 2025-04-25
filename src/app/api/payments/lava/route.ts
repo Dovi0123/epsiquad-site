@@ -14,7 +14,7 @@ if (!PAYMENT_CONFIG.lava.isConfigured()) {
 }
 
 // Генерация подписи для запросов к Lava API
-function generateSignature(data: Record<string, unknown>, secretKey: string): string {
+function generateSignature(data: Record<string, any>, secretKey: string): string {
   // Сортируем ключи
   const keys = Object.keys(data).sort();
   
@@ -68,8 +68,7 @@ export async function POST(request: Request) {
     const orderId = `EPS-${Date.now()}-${userId}`;
     
     // Формируем данные для запроса к Lava API
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const paymentData: Record<string, any> = {
+    const paymentData = {
       merchantId: LAVA_MERCHANT_ID,
       orderId: orderId,
       amount: amount.toString(),
@@ -85,7 +84,7 @@ export async function POST(request: Request) {
     
     // Генерируем подпись
     const signature = generateSignature(paymentData, LAVA_SECRET_KEY);
-    paymentData.signature = signature;
+    paymentData['signature'] = signature;
 
     // Отправляем запрос к Lava API
     try {

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getUserIdFromSession, getUserCart } from '@/lib/db';
+import { getUserIdFromSession, getUserCart, createOrder } from '@/lib/db';
 
 export async function POST(request: Request) {
   try {
@@ -21,10 +21,13 @@ export async function POST(request: Request) {
       );
     }
 
+    // Создаем симулированный заказ и очищаем корзину
+    const result = createOrder(userId, cart);
 
     return NextResponse.json({
       success: true,
       message: 'Симуляция заказа успешно создана',
+      orderId: result.lastInsertRowid,
     });
   } catch (error) {
     console.error('Failed to simulate order:', error);

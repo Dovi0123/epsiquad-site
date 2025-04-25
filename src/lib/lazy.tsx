@@ -26,7 +26,6 @@ export const withLazy = <P extends object>(
   LoadingComponent: ComponentType<LoadingProps> = DefaultLoading
 ) => {
   const LazyComponent = dynamic(importFunc, {
-    // @ts-expect-error - Несовместимость типов между next/dynamic и нашим компонентом загрузки
     loading: LoadingComponent,
     suspense: true,
   });
@@ -38,4 +37,4 @@ export const withLazy = <P extends object>(
       </Suspense>
     );
   };
-};
+}; 
