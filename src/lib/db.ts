@@ -1,7 +1,20 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import Database from 'better-sqlite3';
 import path from 'path';
 import { cookies } from 'next/headers';
 import jwt from 'jsonwebtoken';
+
+// Define the User type based on the database schema
+export interface User {
+  id: number;
+  email: string;
+  password?: string; // Password might not always be selected or needed
+  name: string;
+  notifications: boolean;
+  language: string;
+  theme: string;
+  cart: string; // Assuming cart is stored as a JSON string
+}
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret';
 
@@ -50,18 +63,20 @@ export function createUser(email: string, password: string, name: string) {
   return stmt.run(email, password, name);
 }
 
-export function getUserByEmail(email: string) {
+export function getUserByEmail(email: string): User | undefined {
   const stmt = db.prepare('SELECT * FROM users WHERE email = ?');
-  return stmt.get(email);
+  // Cast the result to User type
+  return stmt.get(email) as User | undefined;
 }
 
-export function getUserById(id: number) {
+export function getUserById(id: number): User | undefined {
   const stmt = db.prepare('SELECT * FROM users WHERE id = ?');
-  return stmt.get(id);
+  // Cast the result to User type
+  return stmt.get(id) as User | undefined;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function updateUser(id: number, data: Record<string, any>) {
+ 
+export function updateUser(id: number, data: Partial<User>) {
   // Создаем SQL запрос для обновления
   const columns = Object.keys(data);
   const placeholders = columns.map(col => `${col} = ?`).join(', ');
@@ -72,7 +87,7 @@ export function updateUser(id: number, data: Record<string, any>) {
   return stmt.run(...values);
 }
 
-export async function getUserFromCookies() {
+export async function getUserFromCookies(): Promise<User | null> {
   // cookies() должен использоваться с await
   const cookieStore = await cookies();
   const token = cookieStore.get('token')?.value;
@@ -82,7 +97,8 @@ export async function getUserFromCookies() {
   try {
     // Верифицируем JWT токен
     const payload = jwt.verify(token, JWT_SECRET) as { id: number; email: string };
-    return getUserById(payload.id);
+    // The return type of getUserById is now User | undefined
+    return getUserById(payload.id) ?? null; // Return null if user not found
   } catch {
     // Если токен неверный или истек, возвращаем null
     return null;
@@ -117,22 +133,23 @@ export function getDb() {
 }
 
 // Функции для работы с корзиной
-export function getUserCart(userId: number) {
+export function getUserCart(userId: number): string[] { // Assuming cart items are strings
   const user = getUserById(userId);
-  if (!user) return [];
+  if (!user || !user.cart) return [];
   try {
-    return JSON.parse(user.cart || '[]');
-  } catch (e) {
+    // Parse the JSON string cart
+    return JSON.parse(user.cart);
+  } catch (_e) {
     return [];
   }
 }
 
-export function updateUserCart(userId: number, cart: any[]) {
+export function updateUserCart(userId: number, cart: string[]) {
   return updateUser(userId, { cart: JSON.stringify(cart) });
 }
 
 // Функции для работы с заказами
-export function createOrder(userId: number, orderData: any) {
+export function createOrder(userId: number, orderData: Record<string, unknown>) {
   const stmt = db.prepare('INSERT INTO orders (user_id, order_data) VALUES (?, ?)');
   const result = stmt.run(userId, JSON.stringify(orderData));
   // Очищаем корзину пользователя

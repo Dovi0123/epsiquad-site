@@ -1,6 +1,20 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { NextResponse } from 'next/server';
 import { getUserIdFromSession, getUserOrders, getDb } from '@/lib/db';
 import crypto from 'crypto';
+import { XuiApi, ClientVlessOptions} from "3x-ui";
+
+const port = 8245
+const GRhost = "thunder-vpn.ru"
+const GRpath = "9zNh09xohvMZ8vn"
+const MSKhost = "msk."+GRhost
+const MSKpath = "FxwX0WPtzXQUdPW"
+
+const GRapi = new XuiApi(`https://${GRhost}:${port}/${GRpath}/`)
+GRapi.stdTTL = 60; // Cache time in seconds - default is 10s
+
+const MSKapi = new XuiApi(`https://${MSKhost}:${port}/${MSKpath}/`)
+GRapi.stdTTL = 60; // Cache time in seconds - default is 10s
 
 // Генерация случайной строки
 function generateRandomString(length: number): string {
@@ -12,10 +26,24 @@ function generateRandomString(length: number): string {
 // Генерация случайной ссылки на подписку
 function generateSubscriptionLink(orderId: number, productId: string): string {
   const randomId = generateRandomString(8);
-  const serverLocation = productId.includes('germany') ? 'de' : 'ru';
+  const serverLocation = productId.includes('germany') ? '' : 'msk';
+  const subPatch = productId.includes('germany') ? 'sdjHIBNiugIUHDgnjkfpdZjb' : 'FxwX0WPtzXQUdPW';
+  const SubApi = productId.includes('germany') ? GRapi : MSKapi
+  const Time = productId.split("-")[2].replace("m", "") as unknown as number
   
+  const Client = {
+    id: generateRandomString(16),
+    sub: randomId,
+    email: generateRandomString(16),
+    expiryTime: Time * 2592000000,
+    enable: true,
+    totalGB: 0,
+    limitIp: 0
+  } as ClientVlessOptions
+  
+  SubApi.addClient(29,Client)
   // Создаем случайную ссылку подписки
-  const subscriptionLink = `https://epsiquad.ru/${serverLocation}/${randomId}-${orderId}`;
+  const subscriptionLink = `https://${serverLocation}.thunder-vpn.ru/${subPatch}/${randomId}`;
   
   return subscriptionLink;
 }
@@ -27,7 +55,7 @@ async function getOrCreateSubscription(orderId: number, productId: string) {
   // Проверяем, есть ли уже конфигурация для этого заказа
   const existingConfig = db.prepare(
     'SELECT * FROM configs WHERE order_id = ?'
-  ).get(orderId);
+  ).get(orderId) as { config_data: string } | undefined;
   
   if (existingConfig) {
     return existingConfig.config_data;
@@ -63,7 +91,7 @@ export async function GET(request: Request) {
     // Если указан конкретный заказ
     if (orderId) {
       // Проверяем, принадлежит ли заказ этому пользователю
-      const orders = getUserOrders(userId);
+      const orders = getUserOrders(userId) as Array<{ id: number | string; order_data: string }>;
       const order = orders.find(o => o.id.toString() === orderId);
       
       if (!order) {

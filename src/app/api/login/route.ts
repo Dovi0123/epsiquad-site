@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Email и пароль обязательны' }, { status: 400 });
   }
   const user = getUserByEmail(email);
-  if (!user) {
+  if (!user || !user.password) {
     return NextResponse.json({ error: 'Пользователь не найден' }, { status: 401 });
   }
   const valid = await bcrypt.compare(password, user.password);
