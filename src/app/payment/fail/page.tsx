@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 
-export default function PaymentFail() {
+function PaymentFail() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [countdown, setCountdown] = useState(10);
@@ -111,5 +111,13 @@ export default function PaymentFail() {
         </div>
       </motion.div>
     </main>
+  );
+}
+
+export default function PaymentFailWrapper() {
+  return (
+    <Suspense fallback={<div>Загрузка...</div>}>
+      <PaymentFail />
+    </Suspense>
   );
 }
