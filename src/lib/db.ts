@@ -5,6 +5,15 @@ import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret';
 
+type User = {
+  id: number;
+  email: string;
+  password: string;
+  name: string;
+  notifications: boolean;
+  cart: string;
+};
+
 // Путь к базе данных (создаётся в корне проекта)
 const db = new Database(path.resolve(process.cwd(), 'users.db'));
 
@@ -118,21 +127,22 @@ export function getDb() {
 
 // Функции для работы с корзиной
 export function getUserCart(userId: number) {
-  const user = getUserById(userId);
+  const user = getUserById(userId) as User | null;
   if (!user) return [];
   try {
     return JSON.parse(user.cart || '[]');
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (e) {
     return [];
   }
 }
 
-export function updateUserCart(userId: number, cart: any[]) {
+export function updateUserCart(userId: number, cart: unknown[]) {
   return updateUser(userId, { cart: JSON.stringify(cart) });
 }
 
 // Функции для работы с заказами
-export function createOrder(userId: number, orderData: any) {
+export function createOrder(userId: number, orderData: unknown) {
   const stmt = db.prepare('INSERT INTO orders (user_id, order_data) VALUES (?, ?)');
   const result = stmt.run(userId, JSON.stringify(orderData));
   // Очищаем корзину пользователя

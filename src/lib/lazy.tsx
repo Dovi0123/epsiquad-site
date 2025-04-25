@@ -26,8 +26,11 @@ export const withLazy = <P extends object>(
   LoadingComponent: ComponentType<LoadingProps> = DefaultLoading
 ) => {
   const LazyComponent = dynamic(importFunc, {
-    loading: LoadingComponent,
-    suspense: true,
+    loading: (loadingProps) => <LoadingComponent 
+      isLoading={loadingProps.isLoading || false} 
+      pastDelay={loadingProps.pastDelay || false} 
+      error={loadingProps.error || null} 
+    />
   });
 
   return function WithLazy(props: P) {

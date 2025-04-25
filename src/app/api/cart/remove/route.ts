@@ -26,7 +26,7 @@ export async function DELETE(request: Request) {
     const cart = getUserCart(userId);
     
     // Удаляем товар из корзины
-    const updatedCart = cart.filter(id => id !== productId);
+    const updatedCart = cart.filter((id: string) => id !== productId);
     
     // Обновляем корзину в БД
     updateUserCart(userId, updatedCart);

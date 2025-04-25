@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 
-export default function PaymentSuccess() {
+// Компонент с доступом к параметрам поиска
+function SuccessContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [countdown, setCountdown] = useState(5);
@@ -33,6 +34,80 @@ export default function PaymentSuccess() {
   }, [router, orderId]);
 
   return (
+    <div className="text-center">
+      <div className="flex justify-center mb-6">
+        <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center">
+          <svg
+            className="h-10 w-10 text-green-600"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M5 13l4 4L19 7"
+            />
+          </svg>
+        </div>
+      </div>
+      
+      <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+        Оплата успешно выполнена!
+      </h1>
+      
+      <p className="text-lg text-gray-600 dark:text-gray-300 mb-6">
+        Спасибо за ваш платёж. Ваш заказ успешно оформлен и находится в обработке.
+      </p>
+      
+      {orderId && (
+        <p className="text-gray-600 dark:text-gray-300 mb-8">
+          Номер заказа: <span className="font-semibold">{orderId}</span>
+        </p>
+      )}
+      
+      <div className="flex flex-wrap gap-4 justify-center">
+        <button
+          onClick={() => router.push(orderId ? `/setup?orderId=${orderId}` : '/account')}
+          className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg transition-colors"
+        >
+          {orderId ? 'Настроить VPN' : 'Личный кабинет'}
+        </button>
+        
+        <button
+          onClick={() => router.push('/')}
+          className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-6 rounded-lg transition-colors dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200"
+        >
+          На главную
+        </button>
+      </div>
+      
+      <p className="text-sm text-gray-500 dark:text-gray-400 mt-8">
+        Автоматический переход через {countdown} {countdown === 1 ? 'секунду' : countdown < 5 ? 'секунды' : 'секунд'}...
+      </p>
+    </div>
+  );
+}
+
+// Фоллбэк, показываемый во время загрузки
+function LoadingFallback() {
+  return (
+    <div className="text-center">
+      <div className="flex justify-center mb-6">
+        <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+        </div>
+      </div>
+      <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+        Загрузка...
+      </h1>
+    </div>
+  );
+}
+
+export default function PaymentSuccess() {
+  return (
     <main className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 py-20">
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
@@ -40,59 +115,9 @@ export default function PaymentSuccess() {
         transition={{ duration: 0.5 }}
         className="max-w-2xl w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 mx-4"
       >
-        <div className="text-center">
-          <div className="flex justify-center mb-6">
-            <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center">
-              <svg
-                className="h-10 w-10 text-green-600"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
-            </div>
-          </div>
-          
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-            Оплата успешно выполнена!
-          </h1>
-          
-          <p className="text-lg text-gray-600 dark:text-gray-300 mb-6">
-            Спасибо за ваш платёж. Ваш заказ успешно оформлен и находится в обработке.
-          </p>
-          
-          {orderId && (
-            <p className="text-gray-600 dark:text-gray-300 mb-8">
-              Номер заказа: <span className="font-semibold">{orderId}</span>
-            </p>
-          )}
-          
-          <div className="flex flex-wrap gap-4 justify-center">
-            <button
-              onClick={() => router.push(orderId ? `/setup?orderId=${orderId}` : '/account')}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg transition-colors"
-            >
-              {orderId ? 'Настроить VPN' : 'Личный кабинет'}
-            </button>
-            
-            <button
-              onClick={() => router.push('/')}
-              className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-6 rounded-lg transition-colors dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200"
-            >
-              На главную
-            </button>
-          </div>
-          
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-8">
-            Автоматический переход через {countdown} {countdown === 1 ? 'секунду' : countdown < 5 ? 'секунды' : 'секунд'}...
-          </p>
-        </div>
+        <Suspense fallback={<LoadingFallback />}>
+          <SuccessContent />
+        </Suspense>
       </motion.div>
     </main>
   );

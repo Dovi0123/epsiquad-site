@@ -5,12 +5,21 @@ import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret';
 
+type User = {
+  id: number;
+  email: string;
+  password: string;
+  name: string;
+  notifications: boolean;
+  cart: string;
+};
+
 export async function POST(req: NextRequest) {
   const { email, password } = await req.json();
   if (!email || !password) {
     return NextResponse.json({ error: 'Email и пароль обязательны' }, { status: 400 });
   }
-  const user = getUserByEmail(email);
+  const user = getUserByEmail(email) as User | null;
   if (!user) {
     return NextResponse.json({ error: 'Пользователь не найден' }, { status: 401 });
   }

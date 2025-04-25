@@ -13,8 +13,17 @@ if (!PAYMENT_CONFIG.lava.isConfigured()) {
   console.error('LAVA API configuration missing. Please set LAVA_MERCHANT_ID and LAVA_SECRET_KEY environment variables.');
 }
 
+type User = {
+  id: number;
+  email: string;
+  password: string;
+  name: string;
+  notifications: boolean;
+  cart: string;
+};
+
 // Генерация подписи для запросов к Lava API
-function generateSignature(data: Record<string, any>, secretKey: string): string {
+function generateSignature(data: Record<string, unknown>, secretKey: string): string {
   // Сортируем ключи
   const keys = Object.keys(data).sort();
   
@@ -56,7 +65,7 @@ export async function POST(request: Request) {
     }
     
     // Получаем информацию о пользователе
-    const user = getUserById(userId);
+    const user = getUserById(userId) as User | null;
     if (!user) {
       return NextResponse.json(
         { error: 'User not found' },
@@ -68,7 +77,7 @@ export async function POST(request: Request) {
     const orderId = `EPS-${Date.now()}-${userId}`;
     
     // Формируем данные для запроса к Lava API
-    const paymentData = {
+    const paymentData: Record<string, unknown> = {
       merchantId: LAVA_MERCHANT_ID,
       orderId: orderId,
       amount: amount.toString(),
@@ -84,7 +93,7 @@ export async function POST(request: Request) {
     
     // Генерируем подпись
     const signature = generateSignature(paymentData, LAVA_SECRET_KEY);
-    paymentData['signature'] = signature;
+    paymentData.signature = signature;
 
     // Отправляем запрос к Lava API
     try {

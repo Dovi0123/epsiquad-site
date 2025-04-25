@@ -4,6 +4,15 @@ import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret';
 
+type User = {
+  id: number;
+  email: string;
+  password: string;
+  name: string;
+  notifications: boolean;
+  cart: string;
+};
+
 export async function GET(req: NextRequest) {
   const token = req.cookies.get('token')?.value;
   if (!token) {
@@ -11,7 +20,7 @@ export async function GET(req: NextRequest) {
   }
   try {
     const payload = jwt.verify(token, JWT_SECRET) as { id: number; email: string };
-    const user = getUserById(payload.id);
+    const user = getUserById(payload.id) as User | null;
     if (!user) {
       return NextResponse.json({ error: 'Пользователь не найден' }, { status: 404 });
     }

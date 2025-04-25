@@ -15,7 +15,11 @@ export async function GET(request: Request) {
     const rawOrders = getUserOrders(userId);
     
     // Преобразуем данные заказов в нужный формат
-    const orders = rawOrders.map(order => {
+    const orders = (rawOrders as Array<{
+      id: string | number;
+      created_at: string | Date;
+      order_data: string;
+    }>).map(order => {
       // Распарсим JSON строку из order_data
       let orderData;
       try {

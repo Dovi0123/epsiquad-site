@@ -5,8 +5,8 @@ type Variant = 'A' | 'B';
 interface Experiment {
   id: string;
   variants: {
-    A: any;
-    B: any;
+    A: unknown;
+    B: unknown;
   };
 }
 
@@ -56,7 +56,7 @@ export const getVariant = (experimentName: string): Variant => {
 };
 
 // Получение значения варианта
-export const getVariantValue = (experimentName: string): any => {
+export const getVariantValue = (experimentName: string): unknown => {
   const variant = getVariant(experimentName);
   return experiments[experimentName]?.variants[variant];
 }; 

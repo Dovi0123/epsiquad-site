@@ -2,17 +2,25 @@ import { NextResponse } from 'next/server';
 import { getUserFromCookies, updateUser, getUserByEmail } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 
+type User = {
+  id: number;
+  email: string;
+  password: string;
+  name: string;
+  notifications: boolean;
+  cart: string;
+};
+
 export async function POST(request: Request) {
   try {
     // Получаем текущего пользователя из cookie (больше не передаем cookieStore)
-    const user = await getUserFromCookies();
+    const user = await getUserFromCookies() as User | null;
     
     if (!user) {
       return NextResponse.json({ error: 'Пользователь не авторизован' }, { status: 401 });
     }
 
     const data = await request.json();
-    
     // Обработка смены пароля
     if (data.currentPassword && data.newPassword) {
       // Проверяем текущий парольч

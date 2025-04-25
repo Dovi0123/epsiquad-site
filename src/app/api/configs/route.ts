@@ -27,7 +27,7 @@ async function getOrCreateSubscription(orderId: number, productId: string) {
   // Проверяем, есть ли уже конфигурация для этого заказа
   const existingConfig = db.prepare(
     'SELECT * FROM configs WHERE order_id = ?'
-  ).get(orderId);
+  ).get(orderId) as { config_data: string } | undefined;
   
   if (existingConfig) {
     return existingConfig.config_data;
@@ -63,7 +63,7 @@ export async function GET(request: Request) {
     // Если указан конкретный заказ
     if (orderId) {
       // Проверяем, принадлежит ли заказ этому пользователю
-      const orders = getUserOrders(userId);
+      const orders = getUserOrders(userId) as { id: number | string, order_data: string }[];
       const order = orders.find(o => o.id.toString() === orderId);
       
       if (!order) {
@@ -77,6 +77,7 @@ export async function GET(request: Request) {
       let orderData;
       try {
         orderData = JSON.parse(order.order_data);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (e) {
         orderData = [];
       }

@@ -10,20 +10,12 @@ import { yupResolver } from '@hookform/resolvers/yup';
 // Определяем тип FormData - все поля опциональные, кроме email
 type FormData = {
   email: string;
-  cardNumber?: string;
-  expiryDate?: string;
-  cvv?: string;
-  name?: string;
 };
 
 // Создаем схему валидации для типа FormData
-const schema = yup.object().shape({
-  email: yup.string().email('Некорректный email').required('Email обязателен'),
-  cardNumber: yup.string().optional(),
-  expiryDate: yup.string().optional(),
-  cvv: yup.string().optional(),
-  name: yup.string().optional(),
-});
+const schema = yup.object({
+  email: yup.string().email('Некорректный email').required('Email обязателен')
+}).required();
 
 type Product = {
   id: string;
@@ -47,7 +39,6 @@ export default function Checkout() {
 
   // Инициализируем форму с правильными типами
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
-    // @ts-ignore - игнорируем ошибку типизации для yupResolver, поскольку версии типов могут не совпадать
     resolver: yupResolver(schema),
     defaultValues: {
       email: '',
