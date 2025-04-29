@@ -243,7 +243,7 @@ function SetupContent() {
         
         {/* Поддержка */}
         <div className="bg-white rounded-lg shadow-lg p-6">
-          <h3 className="text-xl font-semibold mb-3">Нужна помощь?</h3>
+          <h3 className="text-xl font-semibold mb-3 text-black">Нужна помощь?</h3>
           <p className="text-gray-700 mb-3">
             Если у вас возникли сложности при настройке VPN, обратитесь в нашу службу поддержки.
           </p>

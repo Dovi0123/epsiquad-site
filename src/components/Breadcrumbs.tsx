@@ -11,7 +11,8 @@ const routes: { [key: string]: string } = {
   'privacy': 'Политика конфиденциальности',
   'terms': 'Условия использования',
   'checkout': 'Оформление заказа',
-  'account': 'Личный кабинет'
+  'account': 'Личный кабинет',
+  'setup': "Установка"
 };
 
 export default function Breadcrumbs() {
