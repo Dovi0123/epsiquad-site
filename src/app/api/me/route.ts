@@ -11,6 +11,7 @@ type User = {
   name: string;
   notifications: boolean;
   cart: string;
+  is_admin: boolean;
 };
 
 export async function GET(req: NextRequest) {

@@ -1,11 +1,14 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 'use client';
 
 import { useState, useEffect, ChangeEvent, FormEvent, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import FeedbackForm from '@/components/FeedbackForm';
 
 const TABS = [
   { key: 'profile', label: 'Профиль' },
   { key: 'purchases', label: 'Мои покупки' },
+  { key: 'support', label: 'Поддержка' }, // Добавлена новая вкладка
 ];
 
 // Типы для заказов и продуктов
@@ -48,6 +51,27 @@ type ProfileForm = {
   confirmPassword: string;
 };
 
+// Типы для обращений в поддержку
+type SupportTicket = {
+  id: number;
+  subject: string;
+  message: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  response_count: number;
+};
+
+type TicketResponse = {
+  id: number;
+  ticket_id: number;
+  responder_id: number;
+  responder_name: string;
+  is_staff: boolean;
+  message: string;
+  created_at: string;
+};
+
 function AccountPage() {
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [form, setForm] = useState<LoginForm>({ email: '', password: '', name: '' });
@@ -55,7 +79,7 @@ function AccountPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'profile' | 'purchases'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'purchases' | 'support'>('profile');
   const router = useRouter();
   const searchParams = useSearchParams();
   const returnTo = searchParams.get('returnTo');
@@ -76,6 +100,14 @@ function AccountPage() {
 
   // Состояние для отображения формы редактирования профиля
   const [editingProfile, setEditingProfile] = useState(false);
+  
+  // Состояния для обращений в поддержку
+  const [supportTickets, setSupportTickets] = useState<SupportTicket[]>([]);
+  const [loadingTickets, setLoadingTickets] = useState(false);
+  const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
+  const [ticketResponses, setTicketResponses] = useState<TicketResponse[]>([]);
+  const [responseText, setResponseText] = useState('');
+  const [showNewTicketForm, setShowNewTicketForm] = useState(false);
   
   // При получении данных пользователя, обновить настройки из полученных данных
   useEffect(() => {
@@ -134,77 +166,144 @@ function AccountPage() {
     }
   }, [activeTab, user]);
 
+  // Получение списка обращений при переключении на вкладку "Поддержка"
   useEffect(() => {
-    if (user && returnTo === 'checkout') {
-      // Если пользователь залогинен и был returnTo=checkout, редиректим на /checkout
-      const plan = typeof window !== 'undefined' ? localStorage.getItem('selectedPlan') : null;
-      if (plan) {
-        const planName = JSON.parse(plan).name;
-        router.replace(`/checkout?plan=${encodeURIComponent(planName)}`);
-      } else {
-        router.replace('/checkout');
-      }
+    if (activeTab === 'support' && user && !showNewTicketForm) {
+      const fetchTickets = async () => {
+        setLoadingTickets(true);
+        try {
+          const response = await fetch('/api/support/tickets');
+          if (response.ok) {
+            const data = await response.json();
+            setSupportTickets(data.tickets || []);
+            // Сбрасываем выбранный тикет при загрузке списка
+            setSelectedTicket(null);
+            setTicketResponses([]);
+          }
+        } catch (error) {
+          console.error('Ошибка при загрузке обращений:', error);
+        } finally {
+          setLoadingTickets(false);
+        }
+      };
+
+      fetchTickets();
     }
-  }, [user, returnTo, router]);
+  }, [activeTab, user, showNewTicketForm]);
 
-  // Получение информации о продукте по ID
-  const getProductInfo = (productId: string) => {
-    return products.find(product => product.id === productId);
-  };
-
-  // Форматирование даты
-  const formatDate = (dateString: string) => {
+  // Загрузка детальной информации о тикете
+  const loadTicketDetails = async (ticketId: number) => {
     try {
-      const date = new Date(dateString);
-      // Проверка на валидность даты
-      if (isNaN(date.getTime())) {
-        return 'Недоступно';
+      setLoadingTickets(true);
+      const res = await fetch(`/api/support/tickets?ticketId=${ticketId}`);
+      
+      if (!res.ok) {
+        throw new Error('Ошибка загрузки деталей обращения');
       }
       
-      return new Intl.DateTimeFormat('ru-RU', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      }).format(date);
-    } catch (error) {
-      console.error('Ошибка форматирования даты:', error);
-      return 'Недоступно';
+      const data = await res.json();
+      setSelectedTicket(data.ticket);
+      setTicketResponses(data.responses);
+    } catch (err) {
+      console.error('Ошибка при загрузке деталей обращения:', err);
+      setError('Не удалось загрузить детали обращения');
+    } finally {
+      setLoadingTickets(false);
     }
   };
   
-  // Получить локализованное название локации
-  const getLocationName = (location?: string) => {
-    if (!location) return 'Неизвестно';
-    return location === 'germany' ? 'Германия' : 'Россия';
-  };
-
-  // Форматирование длительности
-  const formatDuration = (duration?: number) => {
-    if (!duration) return 'Не указано';
-    if (duration === 1) return '1 месяц';
-    if (duration < 5) return `${duration} месяца`;
-    return `${duration} месяцев`;
-  };
-
-  // Получить статус заказа в виде текста
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'completed': return 'Выполнен';
-      case 'pending': return 'В обработке';
-      case 'cancelled': return 'Отменен';
-      default: return 'Неизвестен';
+  // Обработчик отправки ответа на тикет
+  const handleSendResponse = async (e: FormEvent) => {
+    e.preventDefault();
+    
+    if (!selectedTicket) return;
+    
+    if (!responseText.trim()) {
+      setError('Введите текст ответа');
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      
+      const res = await fetch('/api/support/respond', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ticketId: selectedTicket.id,
+          message: responseText
+        }),
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Ошибка отправки ответа');
+      }
+      
+      setSuccess('Ответ успешно отправлен');
+      setResponseText('');
+      
+      // Обновляем информацию о тикете
+      loadTicketDetails(selectedTicket.id);
+    } catch (err) {
+      console.error('Ошибка при отправке ответа:', err);
+      setError(err instanceof Error ? err.message : 'Не удалось отправить ответ');
+    } finally {
+      setLoading(false);
     }
   };
-
-  // Получить класс для статуса заказа
-  const getStatusClass = (status: string) => {
+  
+  // Функция для возврата к списку тикетов
+  const handleBackToTickets = () => {
+    setSelectedTicket(null);
+    setTicketResponses([]);
+    setError('');
+    setSuccess('');
+  };
+  
+  // Функция для показа формы нового обращения
+  const handleNewTicketClick = () => {
+    setShowNewTicketForm(true);
+    setSelectedTicket(null);
+    setTicketResponses([]);
+    setError('');
+    setSuccess('');
+  };
+  
+  // Обработчик успешного создания тикета
+  const handleTicketCreated = () => {
+    setShowNewTicketForm(false);
+  };
+  
+  // Получить класс для статуса тикета
+  const getTicketStatusClass = (status: string) => {
     switch (status) {
-      case 'completed': return 'bg-green-100 text-green-800 border-green-500';
-      case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-500';
-      case 'cancelled': return 'bg-red-100 text-red-800 border-red-500';
-      default: return 'bg-gray-100 text-gray-800 border-gray-500';
+      case 'new': 
+        return 'bg-blue-100 text-blue-800 border-blue-500';
+      case 'in_progress': 
+        return 'bg-yellow-100 text-yellow-800 border-yellow-500';
+      case 'waiting_user': 
+        return 'bg-purple-100 text-purple-800 border-purple-500';
+      case 'resolved': 
+        return 'bg-green-100 text-green-800 border-green-500';
+      case 'closed': 
+        return 'bg-gray-100 text-gray-800 border-gray-500';
+      default: 
+        return 'bg-gray-100 text-gray-800 border-gray-500';
+    }
+  };
+  
+  // Получить текстовое представление статуса тикета
+  const getTicketStatusText = (status: string) => {
+    switch (status) {
+      case 'new': return 'Новое';
+      case 'in_progress': return 'В обработке';
+      case 'waiting_user': return 'Ожидает ответа';
+      case 'resolved': return 'Решено';
+      case 'closed': return 'Закрыто';
+      default: return 'Неизвестно';
     }
   };
 
@@ -318,7 +417,7 @@ function AccountPage() {
     router.replace('/');
   };
 
-  const handleTabChange = (tabKey: 'profile' | 'purchases') => {
+  const handleTabChange = (tabKey: 'profile' | 'purchases' | 'support') => {
     setActiveTab(tabKey);
     setError(''); // Очищаем ошибки при смене вкладок
     setSuccess('');
@@ -345,7 +444,7 @@ function AccountPage() {
             {TABS.map(tab => (
               <button
                 key={tab.key}
-                onClick={() => handleTabChange(tab.key as 'profile' | 'purchases')}
+                onClick={() => handleTabChange(tab.key as 'profile' | 'purchases' | 'support')}
                 className={`flex-1 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === tab.key ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 dark:text-gray-300'}`}
               >
                 {tab.label}
@@ -364,6 +463,14 @@ function AccountPage() {
                   >
                     Редактировать профиль
                   </button>
+              {!user.isAdmin ? (
+                  <button 
+                    onClick={() => router.push('/admin')} 
+                    className="bg-blue-500 text-white px-4 py-2 rounded mb-4 w-full"
+                  >
+                  Панель администратора
+                  </button>
+                  ): (<div></div>)}
                 </div>
               ) : (
                 <form onSubmit={handleUpdateProfile} className="space-y-4">
@@ -556,6 +663,191 @@ function AccountPage() {
                       </div>
                     );
                   })}
+                </div>
+              )}
+            </div>
+          )}
+          {activeTab === 'support' && (
+            <div>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold">Техническая поддержка</h3>
+                {!showNewTicketForm && !selectedTicket && (
+                  <button
+                    onClick={handleNewTicketClick}
+                    className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded text-sm transition-colors"
+                  >
+                    Новое обращение
+                  </button>
+                )}
+                {(showNewTicketForm || selectedTicket) && (
+                  <button
+                    onClick={() => {
+                      setShowNewTicketForm(false);
+                      handleBackToTickets();
+                    }}
+                    className="text-blue-500 hover:text-blue-600 flex items-center text-sm"
+                  >
+                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                    Назад к списку
+                  </button>
+                )}
+              </div>
+              
+              {error && (
+                <div className="mb-4 p-3 bg-red-100 border-l-4 border-red-500 text-red-700 rounded">
+                  {error}
+                </div>
+              )}
+              
+              {success && (
+                <div className="mb-4 p-3 bg-green-100 border-l-4 border-green-500 text-green-700 rounded">
+                  {success}
+                </div>
+              )}
+
+              {showNewTicketForm ? (
+                <FeedbackForm 
+                  isAuthenticated={true} 
+                  username={user.name} 
+                  userEmail={user.email}
+                  onSuccess={handleTicketCreated}
+                />
+              ) : selectedTicket ? (
+                // Детальный просмотр тикета
+                <div className="mt-4">
+                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg mb-4 shadow-sm">
+                    <div className="flex justify-between">
+                      <h4 className="text-lg font-medium">{selectedTicket.subject}</h4>
+                      <span className={`px-2 py-1 text-xs rounded border-l-4 ${getTicketStatusClass(selectedTicket.status)}`}>
+                        {getTicketStatusText(selectedTicket.status)}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                      Создано: {formatDate(selectedTicket.created_at)}
+                    </p>
+                    <div className="mt-3 p-3 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600">
+                      <p className="whitespace-pre-wrap">{selectedTicket.message}</p>
+                    </div>
+                  </div>
+
+                  <h5 className="font-medium mb-2">История сообщений:</h5>
+                  
+                  {ticketResponses.length === 0 ? (
+                    <p className="text-center py-3 text-gray-500">Пока нет ответов на это обращение.</p>
+                  ) : (
+                    <div className="space-y-3 mb-4">
+                      {ticketResponses.map((response) => (
+                        <div key={response.id} className={`p-3 rounded-lg ${
+                          response.is_staff 
+                            ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800'
+                            : 'bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600'
+                        }`}>
+                          <div className="flex justify-between items-center mb-2">
+                            <div className="flex items-center">
+                              <span className="font-medium">{response.responder_name}</span>
+                              {response.is_staff && (
+                                <span className="ml-2 px-2 py-0.5 text-xs bg-blue-100 text-blue-700 dark:bg-blue-800 dark:text-blue-200 rounded-full">
+                                  Специалист
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-xs text-gray-500">
+                              {formatDate(response.created_at)}
+                            </span>
+                          </div>
+                          <p className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap">{response.message}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Форма ответа, если статус не "решено" или "закрыто" */}
+                  {selectedTicket.status !== 'resolved' && selectedTicket.status !== 'closed' && (
+                    <form onSubmit={handleSendResponse} className="mt-4">
+                      <label htmlFor="response" className="block font-medium mb-2">
+                        Ответить:
+                      </label>
+                      <textarea
+                        id="response"
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                        rows={4}
+                        value={responseText}
+                        onChange={(e) => setResponseText(e.target.value)}
+                        placeholder="Введите ваш ответ..."
+                        required
+                      />
+                      <button
+                        type="submit"
+                        disabled={loading}
+                        className="mt-2 bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition-colors disabled:opacity-50"
+                      >
+                        {loading ? 'Отправка...' : 'Отправить'}
+                      </button>
+                    </form>
+                  )}
+                </div>
+              ) : loadingTickets ? (
+                <div className="flex justify-center my-8">
+                  <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500"></div>
+                </div>
+              ) : supportTickets.length === 0 ? (
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                  <p className="mb-4">У вас пока нет обращений в службу поддержки.</p>
+                  <button
+                    onClick={handleNewTicketClick}
+                    className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-6 rounded transition-colors"
+                  >
+                    Создать первое обращение
+                  </button>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full bg-white dark:bg-gray-800 rounded-lg">
+                    <thead>
+                      <tr className="text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b dark:border-gray-700">
+                        <th className="px-6 py-3">#</th>
+                        <th className="px-6 py-3">Тема</th>
+                        <th className="px-6 py-3">Дата</th>
+                        <th className="px-6 py-3">Статус</th>
+                        <th className="px-6 py-3">Действия</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                      {supportTickets.map((ticket) => (
+                        <tr key={ticket.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                          <td className="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">
+                            {ticket.id}
+                          </td>
+                          <td className="px-6 py-4 text-gray-700 dark:text-gray-300 font-medium">
+                            {ticket.subject}
+                            {ticket.response_count > 0 && (
+                              <span className="ml-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none rounded-full bg-blue-100 text-blue-800">
+                                {ticket.response_count}
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">
+                            {formatDate(ticket.updated_at)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`px-2 py-1 text-xs rounded border-l-4 ${getTicketStatusClass(ticket.status)}`}>
+                              {getTicketStatusText(ticket.status)}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <button
+                              onClick={() => loadTicketDetails(ticket.id)}
+                              className="text-blue-500 hover:text-blue-600"
+                            >
+                              Просмотреть
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>

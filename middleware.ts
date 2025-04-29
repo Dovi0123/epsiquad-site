@@ -6,12 +6,12 @@ export function middleware(request: NextRequest) {
   const hostname = request.headers.get('host');
   
   // Разрешенный домен (замените на ваш домен)
-  const allowedDomain = 'shop.epsiquad.ru';
+  const allowedDomain = 'localhost:3000';
   
   // Если домен не соответствует разрешенному
   if (hostname !== allowedDomain) {
     // Перенаправление на правильный домен
-    return NextResponse.redirect(`https://${allowedDomain}${request.nextUrl.pathname}`);
+    return NextResponse.redirect(`http://${allowedDomain}${request.nextUrl.pathname}`);
   }
   
   return NextResponse.next();
